@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ТЭП70БС — Мои поезда</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; min-height: 100vh; color: white;
+    background-image: url("../background.jpg"); background-size: cover;
+    background-position: center; background-attachment: fixed; }
+  body::before { content: ""; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: -1; }
+  @keyframes appear { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 30px 20px 60px; }
+  .back { display: inline-block; margin-bottom: 20px; padding: 10px 20px; color: white; text-decoration: none;
+    background: rgba(69,123,157,0.6); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    backdrop-filter: blur(8px); transition: 0.2s; }
+  .back:hover { background: rgba(230,57,70,0.75); }
+  .panel { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 16px; backdrop-filter: blur(10px); overflow: hidden; animation: appear 0.7s ease-out both; }
+  .panel img { display: block; width: 100%; max-height: 460px; object-fit: cover; }
+  .panel-body { padding: 28px 30px 34px; }
+  h1 { margin: 0 0 6px; }
+  .subtitle { opacity: 0.8; margin: 0 0 20px; font-size: 15px; }
+  p { line-height: 1.6; }
+  .facts { margin: 22px 0 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 24px; }
+  .facts li { padding: 10px 14px; background: rgba(0,0,0,0.25); border-radius: 10px; font-size: 14px; }
+  .facts b { color: #ffd166; }
+  .wiki { display: inline-block; margin-top: 22px; color: #ffd166; text-decoration: none; border-bottom: 1px dashed #ffd166; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Назад к поездам</a>
+  <div class="panel">
+    <img src="../photo/tep70bs.jpg" alt="ТЭП70БС">
+    <div class="panel-body">
+      <h1>ТЭП70БС</h1>
+      <p class="subtitle">Пассажирский тепловоз — Коломенский завод</p>
+      <p>ТЭП70БС — магистральный пассажирский шестиосный тепловоз с электрической передачей переменно-постоянного тока,
+      созданный на базе тепловоза ТЭП70 и выпускаемый Коломенским заводом с 2006 года (первые образцы — 2002 года).
+      Аббревиатура расшифровывается как «тепловоз с электропередачей, пассажирский, тип 70, Брянский/серийный» — это
+      глубокая модернизация ТЭП70 с новой кабиной, микропроцессорной системой управления и улучшенной экипажной частью.
+      Дизель 2А-5Д49 (16ЧН26/26) развивает мощность 2942 кВт (4000 л.с.), а конструкционная скорость достигает 160 км/ч
+      (существует также исполнение с тяговыми редукторами на 120 км/ч для сложных участков). Тепловоз водит пассажирские
+      поезда на неэлектрифицированных линиях России, Беларуси, Литвы, Туркменистана и Узбекистана.</p>
+      <ul class="facts">
+        <li><b>Тип:</b> пассажирский тепловоз</li>
+        <li><b>Завод:</b> Коломенский завод</li>
+        <li><b>Годы выпуска:</b> с 2006 года (на базе ТЭП70)</li>
+        <li><b>Мощность:</b> 2942 кВт (4000 л.с.)</li>
+        <li><b>Осевая формула:</b> 30—30 (6 осей)</li>
+        <li><b>Конструкционная скорость:</b> 160 км/ч</li>
+        <li><b>Построено:</b> 383 тепловоза</li>
+        <li><b>Эксплуатация:</b> Россия, Беларусь, Литва, Туркменистан, Узбекистан</li>
+      </ul>
+      <a class="wiki" href="https://ru.wikipedia.org/wiki/ТЭП70" target="_blank">Источник: Википедия →</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2ТЭ116 — Мои поезда</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; min-height: 100vh; color: white;
+    background-image: url("../background.jpg"); background-size: cover;
+    background-position: center; background-attachment: fixed; }
+  body::before { content: ""; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: -1; }
+  @keyframes appear { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 30px 20px 60px; }
+  .back { display: inline-block; margin-bottom: 20px; padding: 10px 20px; color: white; text-decoration: none;
+    background: rgba(69,123,157,0.6); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    backdrop-filter: blur(8px); transition: 0.2s; }
+  .back:hover { background: rgba(230,57,70,0.75); }
+  .panel { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 16px; backdrop-filter: blur(10px); overflow: hidden; animation: appear 0.7s ease-out both; }
+  .panel img { display: block; width: 100%; max-height: 460px; object-fit: cover; }
+  .panel-body { padding: 28px 30px 34px; }
+  h1 { margin: 0 0 6px; }
+  .subtitle { opacity: 0.8; margin: 0 0 20px; font-size: 15px; }
+  p { line-height: 1.6; }
+  .facts { margin: 22px 0 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 24px; }
+  .facts li { padding: 10px 14px; background: rgba(0,0,0,0.25); border-radius: 10px; font-size: 14px; }
+  .facts b { color: #ffd166; }
+  .wiki { display: inline-block; margin-top: 22px; color: #ffd166; text-decoration: none; border-bottom: 1px dashed #ffd166; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Назад к поездам</a>
+  <div class="panel">
+    <img src="../photo/2te116.jpg" alt="2ТЭ116">
+    <div class="panel-body">
+      <h1>2ТЭ116</h1>
+      <p class="subtitle">Грузовой тепловоз — Ворошиловградский (Луганский) завод</p>
+      <p>2ТЭ116 — самый массовый грузовой двухсекционный тепловоз с электрической передачей переменно-постоянного тока
+      на постсоветском пространстве. Строился на Ворошиловградском (позднее Луганском) тепловозостроительном заводе
+      в УССР, а после распада СССР — на Украине: базовые 2ТЭ116 выпускались с 1971 по 2007 год, а вся серия с
+      модификациями — с 1971 по 2016 год, всего 2176 локомотивов. Осевая формула 2×(30−30), нагрузка от оси на
+      рельсы 23 тонны, мощность каждого дизеля — 3060 л.с. (2250,6 кВт), конструкционная скорость — 100 км/ч. За
+      прочные и неприхотливые машины их прозвали «Горбатый», «Фантомас» и «Боинг»; они работали в СССР, а затем в
+      России, на Украине, в Латвии, Эстонии, Узбекистане, Казахстане и Монголии.</p>
+      <ul class="facts">
+        <li><b>Тип:</b> грузовой тепловоз</li>
+        <li><b>Завод:</b> Ворошиловградский (Луганский)</li>
+        <li><b>Годы выпуска:</b> 1971—2016</li>
+        <li><b>Мощность:</b> 2×3060 л.с. (2×2250,6 кВт)</li>
+        <li><b>Осевая формула:</b> 2×(30−30)</li>
+        <li><b>Нагрузка на ось:</b> 23 т</li>
+        <li><b>Конструкционная скорость:</b> 100 км/ч</li>
+        <li><b>Построено:</b> 2176 локомотивов</li>
+        <li><b>Эксплуатация:</b> Россия, Украина, Казахстан, Латвия, Эстония, Узбекистан, Монголия</li>
+      </ul>
+      <a class="wiki" href="https://ru.wikipedia.org/wiki/2ТЭ116" target="_blank">Источник: Википедия →</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

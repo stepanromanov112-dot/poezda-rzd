@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЭД4М «Кософар» — Мои поезда</title>
+<style>
+  body { margin: 0; font-family: Arial, sans-serif; min-height: 100vh; color: white;
+    background-image: url("../background.jpg"); background-size: cover;
+    background-position: center; background-attachment: fixed; }
+  body::before { content: ""; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: -1; }
+  @keyframes appear { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 30px 20px 60px; }
+  .back { display: inline-block; margin-bottom: 20px; padding: 10px 20px; color: white; text-decoration: none;
+    background: rgba(69,123,157,0.6); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    backdrop-filter: blur(8px); transition: 0.2s; }
+  .back:hover { background: rgba(230,57,70,0.75); }
+  .panel { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 16px; backdrop-filter: blur(10px); overflow: hidden; animation: appear 0.7s ease-out both; }
+  .panel img { display: block; width: 100%; max-height: 460px; object-fit: cover; }
+  .panel-body { padding: 28px 30px 34px; }
+  h1 { margin: 0 0 6px; }
+  .subtitle { opacity: 0.8; margin: 0 0 20px; font-size: 15px; }
+  p { line-height: 1.6; }
+  .facts { margin: 22px 0 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 24px; }
+  .facts li { padding: 10px 14px; background: rgba(0,0,0,0.25); border-radius: 10px; font-size: 14px; }
+  .facts b { color: #ffd166; }
+  .wiki { display: inline-block; margin-top: 22px; color: #ffd166; text-decoration: none; border-bottom: 1px dashed #ffd166; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">← Назад к поездам</a>
+  <div class="panel">
+    <img src="../photo/ed4m-kosofar.jpg" alt="ЭД4М Кософар">
+    <div class="panel-body">
+      <h1>ЭД4М «Кософар»</h1>
+      <p class="subtitle">Редкий вариант головного вагона</p>
+      <p>«Кософар» (иначе «косые фары») — прозвище поздних электропоездов ЭД4М, у которых головной вагон получил
+      обновлённую маску кабины машиниста с характерно наклонёнными, «косыми» блоками буферных фонарей. Обновлённая
+      кабина появилась в апреле 2012 года — первым её получил ЭД4М-0406, а вместе с ней пришли более длинный
+      объединённый маршрутный указатель и упрощённое лобовое стекло. Именно поэтому такие поезда встречаются редко:
+      новую маску успели получить лишь самые последние составы серии, выпускавшиеся Демиховским заводом в
+      2012—2016 годах, а затем производство ЭД4М было прекращено в пользу ЭП2Д. Последний поезд серии — ЭД4М-0496
+      — тоже относился к «кософарам». Раньше, с 2009 года, лобовая часть маски получила лишь дополнительные подножки
+      и поручни, так что «кософар» — это именно поздний дизайн кабины.</p>
+      <ul class="facts">
+        <li><b>Тип:</b> вариант кабины электропоезда ЭД4М</li>
+        <li><b>Особенность:</b> наклонные («косые») буферные фонари</li>
+        <li><b>Появилась:</b> апрель 2012 года (с ЭД4М-0406)</li>
+        <li><b>Период выпуска:</b> 2012—2016 (последние составы)</li>
+        <li><b>Почему редкий:</b> только ограниченное число последних ЭД4М</li>
+        <li><b>Пример:</b> ЭД4М-0496 — последний поезд серии</li>
+      </ul>
+      <a class="wiki" href="https://ru.wikipedia.org/wiki/ЭД4" target="_blank">Источник: Википедия →</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

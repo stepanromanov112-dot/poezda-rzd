@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои поезда</title>
+  <style>
+    /* ФОН: картинка на весь экран */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      background-image: url("background.jpg");
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    /* ПОЛУПРОЗРАЧНЫЙ ЗАТЕМНЯЮЩИЙ ЭКРАН ПОВЕРХ КАРТИНКИ */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: -1;
+    }
+
+    /* ТЁПЛОЕ СОЛНЕЧНОЕ СВЕЧЕНИЕ (только в режиме "Солнечно") */
+    body.sunny::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 80% 8%, rgba(255, 220, 120, 0.4), transparent 45%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* СЛОЙ ПОГОДЫ (X0ЛСТ) */
+    #weather {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;   /* чтобы канвас не мешал кликам */
+    }
+
+    /* АНИМАЦИЯ ПОЯВЛЕНИЯ */
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ПОЛУПРОЗРАЧНОЕ МЕНЮ */
+    .menu {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      gap: 10px;
+      padding: 15px;
+      background: rgba(29, 53, 87, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: appear 0.5s ease-out both;
+    }
+    .menu .settings-btn { margin-left: auto; }   /* прижать настройки вправо */
+
+    /* ПОЛУПРОЗРАЧНЫЕ КНОПКИ */
+    .btn {
+      background: rgba(69, 123, 157, 0.6);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+      backdrop-filter: blur(4px);
+    }
+    .btn:hover { background: rgba(230, 57, 70, 0.75); }
+    .btn.active { background: rgba(230, 57, 70, 0.85); }
+
+    /* КОНТЕЙНЕР (прозрачный, только для расположения) */
+    .content {
+      position: relative;
+      z-index: 2;
+      margin: 30px;
+      max-width: 900px;
+      color: white;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+      animation: appear 0.8s ease-out 0.15s both;
+    }
+
+    /* КАЖДЫЙ ОТДЕЛ — СВОЯ СТЕКЛЯННАЯ ПАНЕЛЬ (летает вместе с текстом) */
+    .section {
+      display: none;
+      padding: 30px;
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .section.active { display: block; }
+
+    /* СТАРЫЙ ОТДЕЛ УЛЕТАЕТ ВВЕРХ */
+    @keyframes sectionOut {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-80px); }
+    }
+    /* НОВЫЙ ОТДЕЛ ПРИЛЕТАЕТ СНИЗУ */
+    @keyframes sectionIn {
+      from { opacity: 0; transform: translateY(80px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .section.out { animation: sectionOut 0.55s ease-in both; }
+    .section.in  { animation: sectionIn 0.75s ease-out both; }
+    h1 { margin-top: 0; }
+
+    /* СЕТКА КАРТОЧЕК */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .card {
+      display: block;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+      transition: transform 0.25s, box-shadow 0.25s;
+      animation: fade 0.6s ease-out both;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+    .card:nth-child(4) { animation-delay: 0.4s; }
+    .card:nth-child(5) { animation-delay: 0.5s; }
+    .card:nth-child(6) { animation-delay: 0.6s; }
+
+    .card-photo {
+      height: 120px;
+      background: linear-gradient(135deg, #457b9d, #1d3557);
+      background-size: cover;
+      background-position: center;
+    }
+    .card-body { padding: 16px; }
+    .card h3 { margin: 0 0 6px; }
+    .card p { margin: 0; font-size: 14px; opacity: 0.85; }
+
+    /* ОТДЕЛ «СБОРКА» */
+    .build-list { margin: 16px 0 24px; padding-left: 22px; line-height: 1.7; }
+    .build-list li { margin-bottom: 6px; }
+    .download-btn {
+      display: inline-block;
+      padding: 16px 34px;
+      font-size: 18px;
+      font-weight: bold;
+      color: white;
+      text-decoration: none;
+      background: rgba(42, 157, 143, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+      transition: 0.2s;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .download-btn:hover { background: rgba(38, 200, 180, 0.9); transform: translateY(-2px); }
+    .download-note { font-size: 13px; opacity: 0.8; margin-top: 14px; }
+    .social {
+      color: #ffd166;
+      text-decoration: none;
+      border-bottom: 1px dashed #ffd166;
+      transition: 0.2s;
+    }
+    .social:hover { color: #ffc000; border-bottom-color: #ffc000; }
+
+    /* ВТОРАЯ ПАНЕЛЬ (подотделы «Паки») */
+    .submenu {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 15px;
+      background: rgba(29, 53, 87, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      max-height: 220px;
+      overflow: hidden;
+      transition: 0.3s;
+    }
+    .submenu.hidden {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      border-bottom: none;
+      pointer-events: none;
+    }
+    .sub-btn {
+      background: rgba(69, 123, 157, 0.5);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 9px 18px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .sub-btn:hover { background: rgba(69, 123, 157, 0.85); }
+    .sub-btn.active { background: rgba(230, 57, 70, 0.85); }
+
+    /* ПАКИ: пустая картинка + сетка паков */
+    .pack-img {
+      height: 220px;
+      margin: 6px 0 18px;
+      border: 2px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    .pack-desc { margin: 0 0 18px; }
+    .pack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .pack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+      transition: 0.2s;
+    }
+    .pack:hover { background: rgba(255, 255, 255, 0.2); }
+    .pack-name { font-size: 14px; font-weight: bold; word-break: break-word; }
+    .pack-size { font-size: 13px; opacity: 0.75; }
+    .pack-dl {
+      margin-top: auto;
+      text-align: center;
+      padding: 9px 14px;
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      background: rgba(42, 157, 143, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      transition: 0.2s;
+    }
+    .pack-dl:hover { background: rgba(38, 200, 180, 0.9); }
+
+    /* ПАНЕЛЬ НАСТРОЕК */
+    .settings {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      width: 260px;
+      z-index: 5;
+      padding: 20px;
+      background: rgba(29, 53, 87, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      color: white;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+      transition: 0.25s;
+    }
+    .settings.open {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .settings h3 { margin: 0 0 12px; }
+    .weather-options { display: flex; gap: 8px; margin-bottom: 18px; }
+    .weather-btn {
+      flex: 1;
+      padding: 10px 4px;
+      font-size: 13px;
+      color: white;
+      background: rgba(69, 123, 157, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .weather-btn:hover { background: rgba(69, 123, 157, 0.9); }
+    .weather-btn.active { background: rgba(230, 57, 70, 0.85); }
+
+    .settings label { font-size: 14px; }
+    .settings input[type="range"] {
+      width: 100%;
+      margin-top: 8px;
+      accent-color: #e63946;
+    }
+  </style>
+</head>
+<body class="sunny">
+
+  <div class="menu">
+    <button class="btn active" data-target="s-packs-4k">Паки</button>
+    <button class="btn" data-target="s-rzhd">Поезда РЖД</button>
+    <button class="btn" data-target="s-maps">Карты</button>
+    <button class="btn" data-target="s-textures">Текстуры</button>
+    <button class="btn" data-target="s-build">Сборка</button>
+    <button class="btn settings-btn" id="settingsBtn">Настройки</button>
+  </div>
+
+  <!-- ВТОРАЯ ПАНЕЛЬ: подотделы «Паки» (видна только в разделе «Паки») -->
+  <div class="submenu" id="submenu">
+    <button class="sub-btn active" data-target="s-packs-4k">4к паки</button>
+    <button class="sub-btn" data-target="s-packs-track">Рельсы</button>
+    <button class="sub-btn" data-target="s-packs-electric">Электрички</button>
+    <button class="sub-btn" data-target="s-packs-wagons">Вагоны</button>
+    <button class="sub-btn" data-target="s-packs-diesel">Тепловозы</button>
+    <button class="sub-btn" data-target="s-packs-all">Всё что есть</button>
+  </div>
+
+  <div class="content">
+
+        <div class="section active" id="s-packs-4k">
+      <h1>4к паки</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Самые крупные и детализированные паки с текстурами высокого разрешения. <b>(6 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="_ep2d_i_1.2_zeotq.zip">_ep2d_i_1.2_zeotq.zip</div>
+          <div class="pack-size">153,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/_ep2d_i_1.2_zeotq.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip">&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip</div>
+          <div class="pack-size">479,5 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%92%D0%97%D0%9E%D0%A0%C2%BB%20%D0%A2%D0%B5%D0%BF%D0%BB%D0%BE%D0%B2%D0%BE%D0%B7%204%D0%A2%D0%AD10%D0%A1%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ЧС6&#187; v0.1 by GhosT.zip">&#171;ЧС6&#187; v0.1 by GhosT.zip</div>
+          <div class="pack-size">135,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%A7%D0%A16%C2%BB%20v0.1%20by%20GhosT.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="ED4M 300x LED.zip">ED4M 300x LED.zip</div>
+          <div class="pack-size">247,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/ED4M%20300x%20LED.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="zeotq_ed4m_4xx_rzd.zip">zeotq_ed4m_4xx_rzd.zip</div>
+          <div class="pack-size">264,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/zeotq_ed4m_4xx_rzd.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip">Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip</div>
+          <div class="pack-size">115,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4_%D0%AD%D0%932%D0%A2%D0%92_'%D0%98%D0%B2%D0%BE%D0%BB%D0%B3%D0%B0_2_0'.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+    <div class="section" id="s-packs-track">
+      <h1>Рельсы</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Паки путей: рельсы, шпалы, мосты, контактная сеть. <b>(8 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (1).zip">sdfghjkl (1).zip</div>
+          <div class="pack-size">11,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (2).zip">sdfghjkl (2).zip</div>
+          <div class="pack-size">10,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(2).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (3).zip">sdfghjkl (3).zip</div>
+          <div class="pack-size">26,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(3).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="RZD KC.zip">RZD KC.zip</div>
+          <div class="pack-size">8,5 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/RZD%20KC.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="polotno.zip">polotno.zip</div>
+          <div class="pack-size">98,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/polotno.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="new_pack_domov-update+FIX.zip">new_pack_domov-update+FIX.zip</div>
+          <div class="pack-size">17,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/new_pack_domov-update%2BFIX.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Инфрастсруктурный пак 1.2.zip">Инфрастсруктурный пак 1.2.zip</div>
+          <div class="pack-size">11,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%98%D0%BD%D1%84%D1%80%D0%B0%D1%81%D1%82%D1%81%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%BD%D1%8B%D0%B9%20%D0%BF%D0%B0%D0%BA%201.2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="file_6ac950bba61e83.66010934.zip">file_6ac950bba61e83.66010934.zip</div>
+          <div class="pack-size">0,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/file_6ac950bba61e83.66010934.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+    <div class="section" id="s-packs-electric">
+      <h1>Электрички</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Электровозы и электропоезда. <b>(14 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="Электровоз 4ЭС5К.zip">Электровоз 4ЭС5К.zip</div>
+          <div class="pack-size">99,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%204%D0%AD%D0%A15%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ВЛ10у-574(254KRAN).zip">Электровоз ВЛ10у-574(254KRAN).zip</div>
+          <div class="pack-size">33,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%92%D0%9B10%D1%83-574(254KRAN).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ЧС7 (MTS) (1) (1).zip">Электровоз ЧС7 (MTS) (1) (1).zip</div>
+          <div class="pack-size">62,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%A7%D0%A17%20(MTS)%20(1)%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ЭП2К (1).zip">Электровоз ЭП2К (1).zip</div>
+          <div class="pack-size">86,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%AD%D0%9F2%D0%9A%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="НЭВЗ ВЛ60К.zip">НЭВЗ ВЛ60К.zip</div>
+          <div class="pack-size">39,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%AD%D0%92%D0%97%20%D0%92%D0%9B60%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ЧС6&#187; v0.1 by GhosT.zip">&#171;ЧС6&#187; v0.1 by GhosT.zip</div>
+          <div class="pack-size">135,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%A7%D0%A16%C2%BB%20v0.1%20by%20GhosT.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="vl85_zeotq_v2.zip">vl85_zeotq_v2.zip</div>
+          <div class="pack-size">19,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/vl85_zeotq_v2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="ED4M 300x LED.zip">ED4M 300x LED.zip</div>
+          <div class="pack-size">247,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/ED4M%20300x%20LED.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="zeotq_ed4m_4xx_rzd.zip">zeotq_ed4m_4xx_rzd.zip</div>
+          <div class="pack-size">264,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/zeotq_ed4m_4xx_rzd.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="_ep2d_1.2_zeotq.zip">_ep2d_1.2_zeotq.zip</div>
+          <div class="pack-size">96,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/_ep2d_1.2_zeotq.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="_ep2d_i_1.2_zeotq.zip">_ep2d_i_1.2_zeotq.zip</div>
+          <div class="pack-size">153,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/_ep2d_i_1.2_zeotq.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд Рижский ЭР2 V2.zip">Электропоезд Рижский ЭР2 V2.zip</div>
+          <div class="pack-size">79,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4%20%D0%A0%D0%B8%D0%B6%D1%81%D0%BA%D0%B8%D0%B9%20%D0%AD%D0%A02%20V2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip">Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip</div>
+          <div class="pack-size">115,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4_%D0%AD%D0%932%D0%A2%D0%92_'%D0%98%D0%B2%D0%BE%D0%BB%D0%B3%D0%B0_2_0'.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+    <div class="section" id="s-packs-wagons">
+      <h1>Вагоны</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Грузовые и пассажирские вагоны. <b>(11 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Крытый вагон 11-270 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Крытый вагон 11-270 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">17,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9A%D1%80%D1%8B%D1%82%D1%8B%D0%B9%20%D0%B2%D0%B0%D0%B3%D0%BE%D0%BD%2011-270%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Платформа 13-401 (ЧС4) EVSZ_TRS.zip">&#171;xVg&#187; Платформа 13-401 (ЧС4) EVSZ_TRS.zip</div>
+          <div class="pack-size">60,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%2013-401%20(%D0%A7%D0%A14)%20EVSZ_TRS.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Платформа 13-401 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Платформа 13-401 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">6,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%2013-401%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Хоппер 19-7053-02 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Хоппер 19-7053-02 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">10,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%A5%D0%BE%D0%BF%D0%BF%D0%B5%D1%80%2019-7053-02%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Цистерна 68т 15-1566 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Цистерна 68т 15-1566 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">17,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%A6%D0%B8%D1%81%D1%82%D0%B5%D1%80%D0%BD%D0%B0%2068%D1%82%2015-1566%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Вагон РИЦ (RTS) (1).zip">Вагон РИЦ (RTS) (1).zip</div>
+          <div class="pack-size">19,3 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%92%D0%B0%D0%B3%D0%BE%D0%BD%20%D0%A0%D0%98%D0%A6%20(RTS)%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="tvz_61-4465.zip">tvz_61-4465.zip</div>
+          <div class="pack-size">8,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/tvz_61-4465.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Невский экспресс - 2 класс (RTS).zip">Невский экспресс - 2 класс (RTS).zip</div>
+          <div class="pack-size">6,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%20%D1%8D%D0%BA%D1%81%D0%BF%D1%80%D0%B5%D1%81%D1%81%20-%202%20%D0%BA%D0%BB%D0%B0%D1%81%D1%81%20(RTS).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Невский Экспресс - Ресторан (RTS).zip">Невский Экспресс - Ресторан (RTS).zip</div>
+          <div class="pack-size">13,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%20%D0%AD%D0%BA%D1%81%D0%BF%D1%80%D0%B5%D1%81%D1%81%20-%20%D0%A0%D0%B5%D1%81%D1%82%D0%BE%D1%80%D0%B0%D0%BD%20(RTS).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="CMV baggage rjd.zip">CMV baggage rjd.zip</div>
+          <div class="pack-size">4,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/CMV%20baggage%20rjd.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+    <div class="section" id="s-packs-diesel">
+      <h1>Тепловозы</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Дизельные локомотивы и дизельпоезда. <b>(8 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="2te116-1576.zip">2te116-1576.zip</div>
+          <div class="pack-size">52,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2te116-1576.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="2TE25KM_Dark_Angel.zip">2TE25KM_Dark_Angel.zip</div>
+          <div class="pack-size">19,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2TE25KM_Dark_Angel.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="2М62 (by Timoha).zip">2М62 (by Timoha).zip</div>
+          <div class="pack-size">93,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2%D0%9C62%20(by%20Timoha).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip">&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip</div>
+          <div class="pack-size">479,5 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%92%D0%97%D0%9E%D0%A0%C2%BB%20%D0%A2%D0%B5%D0%BF%D0%BB%D0%BE%D0%B2%D0%BE%D0%B7%204%D0%A2%D0%AD10%D0%A1%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="ПАО_&#171;Коломентепловоз&#187;_ТЭП70_&#171;LIMPIKS&#187;.zip">ПАО_&#171;Коломентепловоз&#187;_ТЭП70_&#171;LIMPIKS&#187;.zip</div>
+          <div class="pack-size">71,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9F%D0%90%D0%9E_%C2%AB%D0%9A%D0%BE%D0%BB%D0%BE%D0%BC%D0%B5%D0%BD%D1%82%D0%B5%D0%BF%D0%BB%D0%BE%D0%B2%D0%BE%D0%B7%C2%BB_%D0%A2%D0%AD%D0%9F70_%C2%ABLIMPIKS%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Дизельпоезд_Торжокский_ДТ1_Remade_limpiks_1.zip">Дизельпоезд_Торжокский_ДТ1_Remade_limpiks_1.zip</div>
+          <div class="pack-size">81,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%94%D0%B8%D0%B7%D0%B5%D0%BB%D1%8C%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4_%D0%A2%D0%BE%D1%80%D0%B6%D0%BE%D0%BA%D1%81%D0%BA%D0%B8%D0%B9_%D0%94%D0%A21_Remade_limpiks_1.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="RA2_090.zip">RA2_090.zip</div>
+          <div class="pack-size">9,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/RA2_090.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+    <div class="section" id="s-packs-all">
+      <h1>Всё что есть</h1>
+      <div class="pack-img"></div>
+      <p class="pack-desc">Все паки из папки игры Immersive Railroading разом. <b>(41 шт.)</b></p>
+      <div class="pack-grid">
+        <div class="pack">
+          <div class="pack-name" title="_ep2d_1.2_zeotq.zip">_ep2d_1.2_zeotq.zip</div>
+          <div class="pack-size">96,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/_ep2d_1.2_zeotq.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="_ep2d_i_1.2_zeotq.zip">_ep2d_i_1.2_zeotq.zip</div>
+          <div class="pack-size">153,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/_ep2d_i_1.2_zeotq.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;Skoda&#187; ЧМЭ3  &#171;UkraineRailways&#187;.zip">&#171;Skoda&#187; ЧМЭ3  &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">29,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABSkoda%C2%BB%20%D0%A7%D0%9C%D0%AD3%20%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Крытый вагон 11-270 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Крытый вагон 11-270 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">17,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9A%D1%80%D1%8B%D1%82%D1%8B%D0%B9%20%D0%B2%D0%B0%D0%B3%D0%BE%D0%BD%2011-270%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Платформа 13-401 (ЧС4) EVSZ_TRS.zip">&#171;xVg&#187; Платформа 13-401 (ЧС4) EVSZ_TRS.zip</div>
+          <div class="pack-size">60,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%2013-401%20(%D0%A7%D0%A14)%20EVSZ_TRS.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Платформа 13-401 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Платформа 13-401 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">6,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9F%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B0%2013-401%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Полувагон 12-119  &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Полувагон 12-119  &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">31,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%9F%D0%BE%D0%BB%D1%83%D0%B2%D0%B0%D0%B3%D0%BE%D0%BD%2012-119%20%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Хоппер 19-7053-02 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Хоппер 19-7053-02 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">10,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%A5%D0%BE%D0%BF%D0%BF%D0%B5%D1%80%2019-7053-02%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;xVg&#187; Цистерна 68т 15-1566 &#171;UkraineRailways&#187;.zip">&#171;xVg&#187; Цистерна 68т 15-1566 &#171;UkraineRailways&#187;.zip</div>
+          <div class="pack-size">17,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%ABxVg%C2%BB%20%D0%A6%D0%B8%D1%81%D1%82%D0%B5%D1%80%D0%BD%D0%B0%2068%D1%82%2015-1566%20%C2%ABUkraineRailways%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip">&#171;ВЗОР&#187; Тепловоз 4ТЭ10СК.zip</div>
+          <div class="pack-size">479,5 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%92%D0%97%D0%9E%D0%A0%C2%BB%20%D0%A2%D0%B5%D0%BF%D0%BB%D0%BE%D0%B2%D0%BE%D0%B7%204%D0%A2%D0%AD10%D0%A1%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="&#171;ЧС6&#187; v0.1 by GhosT.zip">&#171;ЧС6&#187; v0.1 by GhosT.zip</div>
+          <div class="pack-size">135,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%C2%AB%D0%A7%D0%A16%C2%BB%20v0.1%20by%20GhosT.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="2te116-1576.zip">2te116-1576.zip</div>
+          <div class="pack-size">52,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2te116-1576.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="2TE25KM_Dark_Angel.zip">2TE25KM_Dark_Angel.zip</div>
+          <div class="pack-size">19,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2TE25KM_Dark_Angel.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="2М62 (by Timoha).zip">2М62 (by Timoha).zip</div>
+          <div class="pack-size">93,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/2%D0%9C62%20(by%20Timoha).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="CMV baggage rjd.zip">CMV baggage rjd.zip</div>
+          <div class="pack-size">4,7 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/CMV%20baggage%20rjd.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="ED4M 300x LED.zip">ED4M 300x LED.zip</div>
+          <div class="pack-size">247,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/ED4M%20300x%20LED.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="file_6ac950bba61e83.66010934.zip">file_6ac950bba61e83.66010934.zip</div>
+          <div class="pack-size">0,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/file_6ac950bba61e83.66010934.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="new_pack_domov-update+FIX.zip">new_pack_domov-update+FIX.zip</div>
+          <div class="pack-size">17,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/new_pack_domov-update%2BFIX.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="polotno.zip">polotno.zip</div>
+          <div class="pack-size">98,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/polotno.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="RA2_090.zip">RA2_090.zip</div>
+          <div class="pack-size">9,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/RA2_090.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="RZD KC.zip">RZD KC.zip</div>
+          <div class="pack-size">8,5 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/RZD%20KC.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (1).zip">sdfghjkl (1).zip</div>
+          <div class="pack-size">11,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (2).zip">sdfghjkl (2).zip</div>
+          <div class="pack-size">10,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(2).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="sdfghjkl (3).zip">sdfghjkl (3).zip</div>
+          <div class="pack-size">26,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sdfghjkl%20(3).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="tvz_61-4465.zip">tvz_61-4465.zip</div>
+          <div class="pack-size">8,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/tvz_61-4465.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="vl85_zeotq_v2.zip">vl85_zeotq_v2.zip</div>
+          <div class="pack-size">19,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/vl85_zeotq_v2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="zeotq_ed4m_4xx_rzd.zip">zeotq_ed4m_4xx_rzd.zip</div>
+          <div class="pack-size">264,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/zeotq_ed4m_4xx_rzd.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Вагон РИЦ (RTS) (1).zip">Вагон РИЦ (RTS) (1).zip</div>
+          <div class="pack-size">19,3 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%92%D0%B0%D0%B3%D0%BE%D0%BD%20%D0%A0%D0%98%D0%A6%20(RTS)%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Дизельпоезд_Торжокский_ДТ1_Remade_limpiks_1.zip">Дизельпоезд_Торжокский_ДТ1_Remade_limpiks_1.zip</div>
+          <div class="pack-size">81,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%94%D0%B8%D0%B7%D0%B5%D0%BB%D1%8C%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4_%D0%A2%D0%BE%D1%80%D0%B6%D0%BE%D0%BA%D1%81%D0%BA%D0%B8%D0%B9_%D0%94%D0%A21_Remade_limpiks_1.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Инфрастсруктурный пак 1.2.zip">Инфрастсруктурный пак 1.2.zip</div>
+          <div class="pack-size">11,2 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%98%D0%BD%D1%84%D1%80%D0%B0%D1%81%D1%82%D1%81%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%BD%D1%8B%D0%B9%20%D0%BF%D0%B0%D0%BA%201.2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Невский экспресс - 2 класс (RTS).zip">Невский экспресс - 2 класс (RTS).zip</div>
+          <div class="pack-size">6,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%20%D1%8D%D0%BA%D1%81%D0%BF%D1%80%D0%B5%D1%81%D1%81%20-%202%20%D0%BA%D0%BB%D0%B0%D1%81%D1%81%20(RTS).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Невский Экспресс - Ресторан (RTS).zip">Невский Экспресс - Ресторан (RTS).zip</div>
+          <div class="pack-size">13,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%B5%D0%B2%D1%81%D0%BA%D0%B8%D0%B9%20%D0%AD%D0%BA%D1%81%D0%BF%D1%80%D0%B5%D1%81%D1%81%20-%20%D0%A0%D0%B5%D1%81%D1%82%D0%BE%D1%80%D0%B0%D0%BD%20(RTS).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="НЭВЗ ВЛ60К.zip">НЭВЗ ВЛ60К.zip</div>
+          <div class="pack-size">39,9 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9D%D0%AD%D0%92%D0%97%20%D0%92%D0%9B60%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="ПАО_&#171;Коломентепловоз&#187;_ТЭП70_&#171;LIMPIKS&#187;.zip">ПАО_&#171;Коломентепловоз&#187;_ТЭП70_&#171;LIMPIKS&#187;.zip</div>
+          <div class="pack-size">71,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%9F%D0%90%D0%9E_%C2%AB%D0%9A%D0%BE%D0%BB%D0%BE%D0%BC%D0%B5%D0%BD%D1%82%D0%B5%D0%BF%D0%BB%D0%BE%D0%B2%D0%BE%D0%B7%C2%BB_%D0%A2%D0%AD%D0%9F70_%C2%ABLIMPIKS%C2%BB.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз 4ЭС5К.zip">Электровоз 4ЭС5К.zip</div>
+          <div class="pack-size">99,6 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%204%D0%AD%D0%A15%D0%9A.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ВЛ10у-574(254KRAN).zip">Электровоз ВЛ10у-574(254KRAN).zip</div>
+          <div class="pack-size">33,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%92%D0%9B10%D1%83-574(254KRAN).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ЧС7 (MTS) (1) (1).zip">Электровоз ЧС7 (MTS) (1) (1).zip</div>
+          <div class="pack-size">62,4 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%A7%D0%A17%20(MTS)%20(1)%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электровоз ЭП2К (1).zip">Электровоз ЭП2К (1).zip</div>
+          <div class="pack-size">86,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%B2%D0%BE%D0%B7%20%D0%AD%D0%9F2%D0%9A%20(1).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд Рижский ЭР2 V2.zip">Электропоезд Рижский ЭР2 V2.zip</div>
+          <div class="pack-size">79,0 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4%20%D0%A0%D0%B8%D0%B6%D1%81%D0%BA%D0%B8%D0%B9%20%D0%AD%D0%A02%20V2.zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд ЭР2-1122 (Ремейк).zip">Электропоезд ЭР2-1122 (Ремейк).zip</div>
+          <div class="pack-size">82,8 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4%20%D0%AD%D0%A02-1122%20(%D0%A0%D0%B5%D0%BC%D0%B5%D0%B9%D0%BA).zip" download>Скачать</a>
+        </div>
+        <div class="pack">
+          <div class="pack-name" title="Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip">Электропоезд_ЭГ2ТВ_&#39;Иволга_2_0&#39;.zip</div>
+          <div class="pack-size">115,1 МБ</div>
+          <a class="pack-dl" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BF%D0%BE%D0%B5%D0%B7%D0%B4_%D0%AD%D0%932%D0%A2%D0%92_'%D0%98%D0%B2%D0%BE%D0%BB%D0%B3%D0%B0_2_0'.zip" download>Скачать</a>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="section" id="s-rzhd">
+      <h1>Поезда РЖД</h1>
+      <p>Нажми на поезд, чтобы открыть о нём отдельную страницу.</p>
+
+      <div class="cards">
+        <a class="card" href="poezda/tep70bs.html">
+          <div class="card-photo" style="background-image: url('photo/tep70bs.jpg');"></div>
+          <div class="card-body">
+            <h3>ТЭП70БС</h3>
+            <p>Пассажирский тепловоз, до 160 км/ч</p>
+          </div>
+        </a>
+        <a class="card" href="poezda/chs7.html">
+          <div class="card-photo" style="background-image: url('photo/chs7.jpg');"></div>
+          <div class="card-body">
+            <h3>ЧС7</h3>
+            <p>Электровоз, 2 секции</p>
+          </div>
+        </a>
+        <a class="card" href="poezda/2te116.html">
+          <div class="card-photo" style="background-image: url('photo/2te116.jpg');"></div>
+          <div class="card-body">
+            <h3>2ТЭ116</h3>
+            <p>Грузовой тепловоз</p>
+          </div>
+        </a>
+        <a class="card" href="poezda/er2.html">
+          <div class="card-photo" style="background-image: url('photo/er2.jpg');"></div>
+          <div class="card-body">
+            <h3>ЭР2</h3>
+            <p>Электричка, пригород</p>
+          </div>
+        </a>
+        <a class="card" href="poezda/ed4m.html">
+          <div class="card-photo" style="background-image: url('photo/ed4m.jpg');"></div>
+          <div class="card-body">
+            <h3>ЭД4М</h3>
+            <p>Электропоезд, пригород</p>
+          </div>
+        </a>
+        <a class="card" href="poezda/ed4m-kosofar.html">
+          <div class="card-photo" style="background-image: url('photo/ed4m-kosofar.jpg');"></div>
+          <div class="card-body">
+            <h3>ЭД4М «Кософар»</h3>
+            <p>Редкая «кософарная» кабина</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <div class="section" id="s-maps"><h1>Карты</h1><p>Карты мира с железными дорогами.</p></div>
+    <div class="section" id="s-textures"><h1>Текстуры</h1><p>Наборы текстур.</p></div>
+    <div class="section" id="s-build">
+      <h1>Сборка «Попутчики»</h1>
+      <p>Готовая сборка модов для Minecraft, на которой снимает и играет автор канала «Попутчики».
+      Внутри — папки <b>config</b>, <b>mods</b>, <b>resourcepacks</b> и <b>shaderpacks</b>.</p>
+      <ul class="build-list">
+        <li>Скачай архив и распакуй его в папку <b>.minecraft</b>.</li>
+        <li>В лаунчере выдели максимум оперативной памяти.</li>
+        <li>Если сборка вылетает — это нормально, просто дай ей прогрузиться.</li>
+      </ul>
+      <a class="download-btn" href="https://github.com/stepanromanov112-dot/poezda-rzd/releases/latest/download/sborka-poputchiki.zip" download>Скачать сборку (.zip)</a>
+      <p class="download-note">Размер архива: ~1.3 ГБ.<br>Автор:
+        <a class="social" href="https://youtube.com/@poputchiki_mc" target="_blank" rel="noopener">YouTube</a> ·
+        <a class="social" href="https://t.me/proIR_mc" target="_blank" rel="noopener">Telegram</a>
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ПАНЕЛЬ НАСТРОЕК -->
+  <div class="settings" id="settingsPanel">
+    <h3>Погода</h3>
+    <div class="weather-options">
+      <button class="weather-btn active" data-weather="sunny">Солнечно</button>
+      <button class="weather-btn" data-weather="rain">Дождь</button>
+      <button class="weather-btn" data-weather="snow">Снег</button>
+    </div>
+    <label>Сила: <span id="forceValue">5</span></label>
+    <input type="range" id="force" min="1" max="10" value="5">
+
+    <label style="display:block; margin-top:16px;">Громкость: <span id="volumeValue">50</span>%</label>
+    <input type="range" id="volume" min="0" max="100" value="50">
+
+    <label style="display:flex; align-items:center; gap:8px; margin-top:16px; cursor:pointer;">
+      <input type="checkbox" id="bgSound" style="width:18px; height:18px; accent-color:#e63946; cursor:pointer;">
+      Фоновый звук
+    </label>
+  </div>
+
+  <!-- КАНВАС ДЛЯ ПОГОДЫ -->
+  <canvas id="weather"></canvas>
+
+  <script>
+    /* ========== ПЕРЕКЛЮЧЕНИЕ ОТДЕЛОВ ========== */
+    const menuButtons = document.querySelectorAll('.menu .btn:not(.settings-btn)');
+    const subButtons = document.querySelectorAll('.submenu .sub-btn');
+    const submenu = document.getElementById('submenu');
+    let current = document.querySelector('.section.active');   // какой отдел сейчас открыт
+    let animating = false;                                     // идёт ли анимация смены
+
+    const isPacks = (id) => id.indexOf('s-packs') === 0;
+
+    /* вторая панель видна только в разделе «Паки» */
+    function updateSubmenu() {
+      if (isPacks(current.id)) submenu.classList.remove('hidden');
+      else submenu.classList.add('hidden');
+    }
+
+    function show(target) {
+      if (animating || !target || target === current) return;   // не дёргаем повторно
+      animating = true;
+
+      const old = current;
+
+      // 1. старый улетает вверх
+      old.classList.add('out');
+      old.addEventListener('animationend', function onOut(e) {
+        if (e.target !== old) return;         // игнорируем анимации элементов внутри
+        old.removeEventListener('animationend', onOut);
+        old.classList.remove('out', 'active');
+
+        // 2. новый прилетает снизу
+        target.classList.add('active', 'in');
+        target.addEventListener('animationend', function onIn(e) {
+          if (e.target !== target) return;
+          target.removeEventListener('animationend', onIn);
+          target.classList.remove('in');
+          animating = false;
+          current = target;
+          updateSubmenu();
+        });
+      });
+    }
+
+    /* верхняя панель */
+    menuButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.target);
+        if (!target || target === current) return;
+        menuButtons.forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+        /* подсветить совпадающий подотдел */
+        subButtons.forEach(b => b.classList.toggle('active', b.dataset.target === target.id));
+        show(target);
+      });
+    });
+
+    /* нижняя панель (подотделы) */
+    subButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const target = document.getElementById(button.dataset.target);
+        if (!target || target === current) return;
+        subButtons.forEach(b => b.classList.remove('active'));
+        button.classList.add('active');
+        show(target);
+      });
+    });
+
+    updateSubmenu();   // видна ли вторая панель при загрузке
+
+    /* ========== ПАНЕЛЬ НАСТРОЕК ========== */
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsPanel.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+        settingsPanel.classList.remove('open');
+      }
+    });
+
+    /* ========== ПОГОДА НА КАНВАСЕ ========== */
+    const canvas = document.getElementById('weather');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+    let mode = 'sunny';   // текущий эффект
+    let force = 5;        // сила (1-10)
+    let particles = [];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    /* создать одну частицу */
+    function makeParticle() {
+      if (mode === 'snow') {
+        return {
+          x: Math.random() * W,
+          y: Math.random() * -H,
+          r: Math.random() * 2 + 1,           // размер снежинки
+          speed: Math.random() * 0.8 + 0.4,   // скорость падения
+          drift: Math.random() * 0.6 - 0.3    // покачивание влево-вправо
+        };
+      }
+      return { // rain
+        x: Math.random() * W,
+        y: Math.random() * -H,
+        len: Math.random() * 12 + 8,          // длина капли-струи
+        speed: Math.random() * 6 + 6,         // дождь падает быстрее
+        drift: 1.2
+      };
+    }
+
+    /* пересобрать все частицы под текущий режим и силу */
+    function rebuild() {
+      particles = [];
+      if (mode === 'sunny') return;
+      const count = Math.round(force * (mode === 'snow' ? 20 : 35));
+      for (let i = 0; i < count; i++) particles.push(makeParticle());
+    }
+
+    /* отрисовка кадра */
+    function loop() {
+      ctx.clearRect(0, 0, W, H);
+
+      for (const p of particles) {
+        if (mode === 'snow') {
+          ctx.beginPath();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          p.y += p.speed;
+          p.x += p.drift;
+          if (p.y > H) { p.y = -5; p.x = Math.random() * W; }
+        } else {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(180, 210, 255, 0.6)';
+          ctx.lineWidth = 1.5;
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + p.drift, p.y + p.len);
+          ctx.stroke();
+          p.y += p.speed;
+          p.x += p.drift * 0.5;
+          if (p.y > H) { p.y = -20; p.x = Math.random() * W; }
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    /* ========== ЗВУК: ПОГОДА + ФОН ========== */
+    const sounds = {
+      sunny: new Audio('sunny.mp3'),
+      rain:  new Audio('rain.mp3'),
+      snow:  new Audio('snow.mp3')
+    };
+    Object.values(sounds).forEach(a => { a.loop = true; });   // зацикленно
+    let currentSound = null;
+
+    const bgSound = new Audio('background.mp3');
+    bgSound.loop = true;
+    const bgToggle = document.getElementById('bgSound');
+
+    function playWeatherSound(name) {
+      if (currentSound) {
+        currentSound.pause();
+        currentSound.currentTime = 0;
+      }
+      currentSound = sounds[name];
+      if (currentSound) currentSound.play().catch(() => {});
+    }
+
+    /* фон и погода НЕ совмещаются: побеждает фоновый звук */
+    function updateAudio() {
+      if (bgToggle.checked) {
+        /* фон включён — глушим погоду */
+        if (currentSound) {
+          currentSound.pause();
+          currentSound.currentTime = 0;
+          currentSound = null;
+        }
+        bgSound.play().catch(() => {});
+      } else {
+        /* фон выключен — играет погода текущего режима */
+        bgSound.pause();
+        bgSound.currentTime = 0;
+        playWeatherSound(mode);
+      }
+    }
+
+    bgToggle.addEventListener('change', updateAudio);
+
+    /* выбор режима погоды */
+    const weatherBtns = document.querySelectorAll('.weather-btn');
+    weatherBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        weatherBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        mode = btn.dataset.weather;
+        document.body.classList.toggle('sunny', mode === 'sunny');
+        rebuild();
+        updateAudio();   // включаем звук режима (если фон не включён)
+      });
+    });
+
+    /* ползунок силы */
+    const forceInput = document.getElementById('force');
+    const forceValue = document.getElementById('forceValue');
+    forceInput.addEventListener('input', () => {
+      force = Number(forceInput.value);
+      forceValue.textContent = force;
+      rebuild();
+    });
+
+    /* ползунок громкости */
+    const volumeInput = document.getElementById('volume');
+    const volumeValue = document.getElementById('volumeValue');
+    function applyVolume() {
+      const v = Number(volumeInput.value) / 100;
+      volumeValue.textContent = volumeInput.value;
+      Object.values(sounds).forEach(a => { a.volume = v; });
+      bgSound.volume = v;
+    }
+    volumeInput.addEventListener('input', applyVolume);
+    applyVolume();   // применить начальную громкость
+  </script>
+
+</body>
+</html>
